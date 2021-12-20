@@ -106,7 +106,8 @@ class logsin_dataset(sc_dataset):
     def get_optimizer_pars(self, jkernel):
         lr = 0.1
         s1 = 100
-        s2 = 0.5        
-        return lr, s1, s2
+        s2 = 0.5
+        N_iter= 300
+        return lr, s1, s2, N_iter
         
             

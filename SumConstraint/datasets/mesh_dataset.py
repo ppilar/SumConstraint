@@ -95,7 +95,9 @@ class mesh_dataset(sc_dataset):
         s1 = 800
         s2 = 0.2
         
-        return lr, s1, s2
+        N_iter = 2000
+        
+        return lr, s1, s2, N_iter
     
       
 #helper functions to generate triangle trajectory     

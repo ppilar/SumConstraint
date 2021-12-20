@@ -3,7 +3,7 @@ import torch
 
 class damped_HO_dataset(HO_dataset):
     def __init__(self, pars):
-        HO_dataset.__init__(self, pars)
+        HO_dataset.__init__(self, pars, 'dHO')
         self.dlabel = 'dHO'
         self.constant_C = 0
        

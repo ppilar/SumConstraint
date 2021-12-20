@@ -26,7 +26,8 @@ def plot_results(ds):
         plot_loop(ax1[0], ds.test_x, ds.pmean_trans_ges[jk], cstr=get_cstr(jk), cmode = 1)
         llist2 += get_label(jk)*ds.MT_dim_trans   
         ax1[1].semilogy(abs(-ds.mll_ges[jk,:ds.imll[jk]]),get_cstr(jk)+'k')
-    draw_C_curve(ax1[0],ds)
+    if ds.dlabel in ['HO', 'dHO', 'logsin']:
+        draw_C_curve(ax1[0],ds)
     llist2 += ['constraint']
     ax1[0].axhline(0,ds.xmin,ds.xmax,linestyle=':',color='gray')
     ax1[0].legend(llist2)
@@ -61,14 +62,12 @@ def plot_loop(ax,X,Yges,pmode='',cstr = '',cmode = 0): #maybe make property of d
         else:
             ax.plot(X,Yges[:,j],cstr+cc)
             
-def draw_C_curve(ax,ds):
-    
+def draw_C_curve(ax,ds):    
     if ds.constant_C == 0:
         Cplot = ds.get_C()(ds.test_x)
         ax.plot(ds.test_x,2*Cplot,linestyle='--',color = 'gray')
     else:
-        if ds.C.size() == 1:
-            ax.axhline(ds.C,ds.xmin,ds.xmax,linestyle='--',color='gray')            
+        ax.axhline(2*ds.C,ds.xmin,ds.xmax,linestyle='--',color='gray')            
             
 ######
 ######
@@ -91,32 +90,36 @@ def conf_plot(ds, conf_yn = 1):
         tvec = [1,3]
         ctvec = ['g', 'b']
         mvec = ['o','X']
-        lvec = [r'$z_{\rm aux}$',r'$v_{\rm aux}$']
+        l0vec = [r'$z_{\rm aux}$',r'$v_{\rm aux}$']
         ltvec = ['$z^2$','$v^2$','$2E$']
+        lbvec = ['$z$','$v$']
     elif ds.dlabel == 'ff':
         ovec = [0,1]
         covec = ['m','c']
         tvec = [0,2]
         ctvec = ['g', 'b']
         mvec = ['o','X']
-        lvec = [r'$z_0$',r'$v_{\rm aux}$']
-        ltvec = ['$2$','$v^2$']
+        l0vec = [r'$z_0$',r'$v_{\rm aux}$']
+        ltvec = ['$z^2$','$v^2$','$2E$']
+        lbvec = ['$z$','$v$']
     elif ds.dlabel == 'dp':
         ovec = range(8)
         covec = ['c']*4 + ['m']*4
         tvec = [0,1,2,3,5,7,9,11]
         ctvec = ['b']*4 + ['r']*4
         mvec = ['o']*8
-        lvec = ['p']*4 + ['v']*4
-        ltvec = ['p']*4 + ['v']*4
+        l0vec = ['p']*4 + ['v']*4
+        ltvec = ['p']*4 + ['v']*4 + ['2E']
+        lbvec = ['p']*4 + ['v']*4
     elif ds.dlabel == 'mesh':
         ovec = range(8)
         tvec= range(10)
         covec = ['b']*8
         ctvec = ['g']*10
         mvec = ['o']*10
-        lvec = ['x']*10
-        ltvec = ['x']*10
+        l0vec = ['x']*8
+        ltvec = ['aux']*9
+        lbvec = ['x']*8
         xlabel = r'$\alpha$'
     elif ds.dlabel == 'logsin':
         ovec = [0,1]
@@ -124,9 +127,10 @@ def conf_plot(ds, conf_yn = 1):
         tvec = [0,2]
         ctvec = ['g','b']
         mvec = ['o','x']
-        lvec = ['$f_1$','$f_2$']
-        lvec = [r'$f_{1_0}$',r'$f_{\rm aux}^1$']
+        #lvec = ['$f_1$','$f_2$']
+        l0vec = [r'$f_{1_0}$',r'$f_{\rm aux}^1$']
         ltvec = ['log($f_1$)','sin($f_2$)', '$2C$']
+        lbvec = ['$f_1}$','$f_2$']
         xlabel = 'x'
         
     else:
@@ -135,7 +139,7 @@ def conf_plot(ds, conf_yn = 1):
         covec = ['m','c']*3
         ctvec = ['b','r','g']*3
         mvec = ['o']*10
-        lvec = ['x']*10
+        l0vec = ['x']*10
     
     
     #plot of original outputs (unconstrained GP)
@@ -146,22 +150,26 @@ def conf_plot(ds, conf_yn = 1):
         if conf_yn == 1:    
             axs[0,0].fill_between(ds.test_x,ds.lower_ges[0,:,i],ds.upper_ges[0,:,i],alpha=0.2,color=c)
     #axs[0,0].legend(['$z_0$','$v_0$'])
-    axs[0,0].legend(lvec)
+    axs[0,0].legend(l0vec)
     axs[0,0].set(xlabel=xlabel)
-    #axs[0,0].set(ylim=[-1.3,1.5])
+    #axs[0,0].set(ylim=[-1.7,2.0])
     
     
     #plot of transformed outputs (constrained GP)
     for i, c, co, m in zip(tvec,ctvec,covec,mvec):
-        axs[0,1].scatter(ds.train_x_trans[:-Nzc],ds.train_y_trans[:-Nzc,i],color=c, marker=m, zorder=4, label='_nolegend_')
-        axs[0,1].scatter(ds.train_x_trans[-Nzc:],ds.train_y_trans[-Nzc:,i],color=co, marker=m, zorder=5, label='_nolegend_')
+        if Nzc > 0:
+            axs[0,1].scatter(ds.train_x_trans[:-Nzc],ds.train_y_trans[:-Nzc,i],color=c, marker=m, zorder=4, label='_nolegend_')
+            axs[0,1].scatter(ds.train_x_trans[-Nzc:],ds.train_y_trans[-Nzc:,i],color=co, marker='s', zorder=5, label='_nolegend_')
+        else:
+            axs[0,1].scatter(ds.train_x_trans[:],ds.train_y_trans[:,i],color=c, marker=m, zorder=4, label='_nolegend_')
         axs[0,1].plot(ds.test_x,ds.pmean_trans_ges[1,:,i],'-'+c)
         if conf_yn == 1:    
             axs[0,1].fill_between(ds.test_x,ds.lower_trans_ges[1,:,i],ds.upper_trans_ges[1,:,i],alpha=0.2,color=c)
             
         axs[0,1].plot(ds.test_x,ds.test_y_trans[:,i],':k',zorder=-1, label='_nolegend_')
     
-    draw_C_curve(axs[0,1],ds)
+    if ds.dlabel in ['HO', 'dHO', 'logsin']:
+        draw_C_curve(axs[0,1],ds)
     axs[0,1].legend(ltvec)
     axs[0,1].set(xlabel=xlabel)
     #axs[0,1].set(ylim=[-0.25,2.25])
@@ -176,9 +184,9 @@ def conf_plot(ds, conf_yn = 1):
         axs[1,1].plot(ds.test_x,ds.test_y[:,i],':k',zorder=-1, label='_nolegend_')
         
     #axs[1,1].legend(['$z$','$v$'])
-    axs[1,1].legend(lvec)
+    axs[1,1].legend(lbvec)
     axs[1,1].set(xlabel=xlabel)
-    #axs[1,1].set(ylim=[-1.3,1.5])
+    #axs[1,1].set(ylim=[-1.7,2.0])
 
     
     #plot of original outputs - both constraind and unconstrained GP
@@ -190,12 +198,15 @@ def conf_plot(ds, conf_yn = 1):
             axs[1,0].fill_between(ds.test_x,ds.lower_ges[1,:,i],ds.upper_ges[1,:,i],alpha=0.2,color=ct)    
             axs[1,0].fill_between(ds.test_x,ds.lower_ges[0,:,i],ds.upper_ges[0,:,i],alpha=0.2,color=co)
         axs[1,0].plot(ds.test_x,ds.test_y[:,i],':k',zorder=-1, label='_nolegend_')
-    axs[1,0].legend(['$z_0$','$z$','$v_0$','$v$'])
+    lbuf = [None]*(len(l0vec)+len(ltvec)-1)
+    lbuf[::2] = l0vec
+    lbuf[1::2] = lbvec
+    axs[1,0].legend(lbuf)
     axs[1,0].set(xlabel=xlabel)
     #axs[1,0].set(ylim=[-1.5,2])
 
     if conf_yn == 1:
-        plt.savefig('results/plots/ff_conf_illustration.pdf', format='pdf')
+        plt.savefig('results/plots/'+ds.dlabel+'_conf_illustration.pdf', format='pdf')
     else:
-        plt.savefig('results/plots/ff_illustration.pdf', format='pdf')
+        plt.savefig('results/plots/'+ds.dlabel +'_illustration.pdf', format='pdf')
 

@@ -9,6 +9,7 @@ from ..dropper import dropper
 import numpy as np
 import torch
 import csv
+import dill
 
 
 class dp_dataset(sc_dataset):
@@ -56,6 +57,7 @@ class dp_dataset(sc_dataset):
         #define outputs
         self.train_y = torch.tensor(self.xv[:,itrain].T)
         self.test_y =  torch.tensor(self.xv[:,itest].T)
+        
         
         #dropout and transformed outputs
         self.dropout_and_trans()
@@ -156,8 +158,10 @@ class dp_dataset(sc_dataset):
         else:
             s1 = 800
             s2 = 0.2
+            
+        N_iter = 2000
         
-        return lr, s1, s2
+        return lr, s1, s2, N_iter
 
 
 

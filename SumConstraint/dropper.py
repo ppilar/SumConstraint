@@ -20,7 +20,7 @@ class dropper:
         #    _,_ = self.dropout(Y)
             
     def dropout(self,Y):
-        if type(self.drop_ind) == int:
+        if isinstance(self.drop_ind, int):
             self.drop_ind = self.get_dropout_ind(Y.shape)
         Y_new = self.remove_dropout(Y)
         #return self.drop_ind, Y_new

@@ -19,7 +19,8 @@ class sc_dataset():
         self.noise = pars.get("noise",-1)
         self.dropout_mode = pars.get("drm",-1)
         self.f_dropout = pars.get("fdr", -1)
-        
+        self.sopt = pars.get("sopt", -1)
+        print("sopt:",self.sopt)
         #parameters for virtual measurements
         self.vm_crit = 0
         self.vm_val = 0
@@ -89,12 +90,13 @@ class sc_dataset():
         self.upper_trans_ges = torch.zeros([self.N_kernel,d0,d1])
         
         self.imll = torch.zeros(self.N_kernel).int()
+        self.Ntry = torch.zeros(self.N_kernel).int()
         self.mll_ges = torch.zeros([self.N_kernel, N_iter])
         self.mll2_ges = torch.zeros([self.N_kernel, N_iter])
         self.mll3_ges = torch.zeros([self.N_kernel, N_iter])
         
     #store predictions after training
-    def set_prediction(self, jkernel, transform_yn, pmean, pmean_trans, lower, lower_trans, upper, upper_trans, mll_ges, mll2_ges, mll3_ges, N_iter):
+    def set_prediction(self, jkernel, transform_yn, pmean, pmean_trans, lower, lower_trans, upper, upper_trans, mll_ges, mll2_ges, mll3_ges, N_iter, Ntry):
         if jkernel == 0:
             self.init_predictions(N_iter)
         
@@ -108,6 +110,7 @@ class sc_dataset():
             self.upper_trans_ges[jkernel,:,0:upper_trans.shape[1]] = upper_trans
         
         self.imll[jkernel] = mll_ges.size-1
+        self.Ntry[jkernel] = Ntry
         self.mll_ges[jkernel,:mll_ges.size] = torch.tensor(mll_ges)
         self.mll2_ges[jkernel,:mll2_ges.size] = torch.tensor(mll2_ges)
         self.mll3_ges[jkernel,:mll3_ges.size] = torch.tensor(mll3_ges)
@@ -173,19 +176,19 @@ class sc_dataset():
         lr = 0.3
         s1 = 200
         s2 = 0.5
+        N_iter = 300
         
-        return lr, s1, s2
+        return lr, s1, s2, N_iter
         
     #get optimizer and scheduler
     def get_optimizer(self, jkernel, model):
-        lr, s1, s2 = self.get_optimizer_pars(jkernel)
+        lr, s1, s2, N_iter = self.get_optimizer_pars(jkernel)
         
         optimizer = torch.optim.Adam([
             {'params': model.parameters()},  # Includes GaussianLikelihood parameters
         ],lr = lr)                
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer,s1,s2)
-        print(s1)
-        return optimizer, scheduler
+        return optimizer, scheduler, N_iter
     
     
     #get first and last index for error calculation

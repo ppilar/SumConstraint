@@ -6,15 +6,16 @@ import torch
 
 
 class HO_dataset(sc_dataset):
-    def __init__(self, pars):
-        sc_dataset.__init__(self, pars)
+    def __init__(self, pars, dlabel = 'HO'):
+        sc_dataset.__init__(self, pars)        
+        self.dlabel = dlabel
         
-        self.dlabel = 'HO'
         #outside inputs
         if self.noise == -1: self.noise = 1
         if self.Ntrain == -1: self.Ntrain = 20        
         if self.dropout_mode == -1: self.dropout_mode = 1
         if self.f_dropout == -1: self.f_dropout = 0
+        if self.sopt == -1: self.sopt = 0
         
         self.Ntest = 100                
         self.MT_dim = 2
@@ -31,7 +32,12 @@ class HO_dataset(sc_dataset):
         
         #generate data
         self.train_and_test()
-        self.dropout_and_trans()  #initialize dropout and transformed outputs
+        self.init_dropout()
+        if self.sopt == 1 and self.dlabel == 'HO': #drop out some specific points for demonstrative purposes
+            self.dropper.drop_ind[:3,1] = torch.ones(3)
+            self.train_y = self.dropper.remove_dropout(self.train_y)
+        self.init_trans()
+        #self.dropout_and_trans()  #initialize dropout and transformed outputs
         
         #meta data for trainig process
         self.unconstrained_as_aux = 1

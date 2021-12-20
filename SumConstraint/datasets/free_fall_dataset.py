@@ -47,8 +47,12 @@ class free_fall_dataset(sc_dataset):
         self.C = self.C/fnorm
         self.F[0,2] = self.F[0,2]*fnorm
         
-        self.dropout_and_trans()
-        
+        self.init_dropout()
+        if self.sopt == 1: #drop out some specific points for demonstrative purposes
+            self.dropper.drop_ind[4:8,0] = torch.ones(4)
+            self.dropper.drop_ind[10:12,0] = torch.ones(2)           
+            self.train_y = self.dropper.remove_dropout(self.train_y)
+        self.init_trans()
         
         #meta data
         self.unconstrained_as_aux = 1

@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import dill
 import sys
 
 import torch
@@ -13,8 +14,10 @@ from .sc_gpytorch.sc_exact_gp import ExactGP
 from .sc_gpytorch.sc_exact_marginal_log_likelihood import ExactMarginalLogLikelihood
 from .sc_gpytorch.sc_multitask_gaussian_likelihood import sc_MultitaskGaussianLikelihood
 
-from .utils import get_zero_crossings, drop_auxvar, prepare_aux
+from .utils import get_zero_crossings, drop_auxvar, prepare_aux, collect_parameters, get_data
+from .sc_results import sc_results
 
+from .plots import plot_results, conf_plot
 
 #define multitask GP model
 class MultitaskGPModel(ExactGP):
@@ -87,18 +90,20 @@ def set_model_mean_covar_modules(model, MT_GP_kernel, MT_dim, C, F, constrain):
 
 
 #train GP and collect predictions
-def evaluate_model(jkernel, dataset, N_iter, constrain_start):    
+def evaluate_model(jkernel, dataset, N_iter, constrain_start, early_stopping):    
     x, y, xs, MT_dim, dropper, F, C, transform_yn = dataset.load(jkernel)    
      
     # remove auxiliary outputs from transformed vector, if they are learned separately (by unconstrained GP)
     if dataset.drop_aux == 1 and jkernel > 0: #check for dropper clone
         y, MT_dim, dropper, F = drop_auxvar(dataset.ilist_drop_aux_trans, y, MT_dim, dropper, F)
     
+    Ntry = 0 #number of overall attempts
     Ndnc = 0 #number of failures to converge
     nc = 40 #number of steps for convergence criterion
-    for i in range(10): #loop to catch numerical instabilities and retry with newly initialized hyperparameters
+    for i in range(50): #loop to catch numerical instabilities and retry with newly initialized hyperparameters
         try: #retry with different initialization of hyperaparameters, when cholesky fails
             #initialize model
+            Ntry += 1
             likelihood = sc_MultitaskGaussianLikelihood(num_tasks = MT_dim, N_virtual = dataset.N_virtual)
             model = MultitaskGPModel(x, y, likelihood, dropper, jkernel, C, F)
             
@@ -112,8 +117,9 @@ def evaluate_model(jkernel, dataset, N_iter, constrain_start):
             likelihood.train()
             
             mll = ExactMarginalLogLikelihood(likelihood, model) #log-marginal likelihood; loss function
-            optimizer, scheduler = dataset.get_optimizer(jkernel,model)    #optimizer and scheduler
-            
+            optimizer, scheduler, N_iter0 = dataset.get_optimizer(jkernel,model)    #optimizer and scheduler
+            if N_iter == -1:
+                N_iter = N_iter0
             
             #hyperparameter optimization loop
             mllges, mllges2, mllges3 = np.zeros([3, N_iter])
@@ -144,7 +150,7 @@ def evaluate_model(jkernel, dataset, N_iter, constrain_start):
                 #print('ls:',model.covar_module.base_kernel.lengthscale.item())
                 titer[i] = time.time() - start
                 
-                if i > nc: #stop early, if justified
+                if i > nc and early_stopping == 1: #stop early, if justified
                     if np.std(mllges[i-nc:i+1]) < 0.1:#*np.mean(np.abs(mllges[i-nc:i])):
                         break
                 
@@ -160,7 +166,7 @@ def evaluate_model(jkernel, dataset, N_iter, constrain_start):
                 break
                 
                     
-        except:
+        except Exception:
             print('error in cholesky decomposition; try again')
         
     #titer_avg = np.sum(titer)/training_iter
@@ -202,8 +208,43 @@ def evaluate_model(jkernel, dataset, N_iter, constrain_start):
     
     #save predictions
     dataset.models.append(model)
-    dataset.set_prediction(jkernel, transform_yn, pmean, pmean_trans, lower, lower_trans, upper, upper_trans, mllges[:i+1], mllges2[:i+1], mllges3[:i+1], N_iter)
+    dataset.set_prediction(jkernel, transform_yn, pmean, pmean_trans, lower, lower_trans, upper, upper_trans, mllges[:i+1], mllges2[:i+1], mllges3[:i+1], N_iter, Ntry)
         
     return dataset
 
 
+
+def get_results(MT_GP_kernels, dlabel, noise, f_dropout, N_datasets=1, N_iter=-1, Ntrain=-1, constrain_start=0, early_stopping=0, sopt=0, same_data=0):
+
+    pars = {"Ntrain": Ntrain, "noise": noise, "fdr": f_dropout, "kernels": MT_GP_kernels, "sopt": sopt}
+    
+    results = sc_results(MT_GP_kernels) #initialize results
+    for jN in range(N_datasets):    #loop over datasets
+        print('\njN=' + str(jN))
+        ds = get_data(dlabel, pars, same_data) #load dataset
+        for jkernel in MT_GP_kernels:   #loop over kernels
+            ds = evaluate_model(jkernel, ds, N_iter, constrain_start, early_stopping) #train model and make predictions
+        results.add(ds) #add dataset to results
+    #%%     
+                
+    #make plots
+    print('\n\n')
+    plot_results(ds)
+    conf_plot(ds)    
+    #%% 
+    
+    #print and save results        
+    results.get_statistics()
+    #se fstring!
+    fname = f'{dlabel}Nd{N_datasets}Nit{N_iter}fd{f_dropout}nf{noise}'
+    #fname = str(dlabel) + 'Nd' + str(N_datasets) + 'Nit' + str(N_iter) + 'fd' + str(f_dropout) + 'nf' + str(noise)
+    with open('results/data/output_' + fname + '.txt', "w") as ftxt:
+    #ftxt = open('results/data/output_' + fname + '.txt', "w")
+        collect_parameters(ftxt, ds, MT_GP_kernels, ds.Ntrain, N_datasets, N_iter, constrain_start, early_stopping, same_data)        
+        results.print_statistics(ftxt)
+    #ftxt.close()
+    
+    with open('results/data/results_' + fname + '.dill','wb') as f:
+                dill.dump(results,f)
+
+    return ds, results

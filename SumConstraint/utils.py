@@ -22,6 +22,9 @@ def get_data(dlabel, pars, same_data = 0):
     if same_data == 1: #load dataset from previous run
         with open('data_previous.dill','rb') as f:
             dataset = dill.load(f)
+    elif same_data == -1:
+        with open('results/plot_data/'+dlabel+'_plot_data.dill','rb') as f:
+            dataset = dill.load(f)
     else: #create new dataset, selected via dlabel
         if dlabel == 'HO':
             dataset = HO_dataset(pars)
@@ -48,7 +51,7 @@ def print2(tstr,ftxt):
     ftxt.write(tstr+'\n')           
                 
 #list parameters of dataset and learning process
-def collect_parameters(ftxt, ds, MT_GP_kernels, Ndata, N_datasets, N_iter, constrain_start, same_data):
+def collect_parameters(ftxt, ds, MT_GP_kernels, Ndata, N_datasets, N_iter, constrain_start, early_stopping, same_data):
     print2('dlabel:' + str(ds.dlabel), ftxt)
     print2('xmax:' + str(ds.xmax), ftxt)
     print2(' ', ftxt)
@@ -59,6 +62,7 @@ def collect_parameters(ftxt, ds, MT_GP_kernels, Ndata, N_datasets, N_iter, const
     print2('f_dropout:' + str(ds.f_dropout), ftxt)    
     print2('N_iterations:' + str(N_iter), ftxt)
     print2('constrain_start:' + str(constrain_start), ftxt)
+    print2('early_stopping:' + str(early_stopping), ftxt)
     print2('same_data:' + str(same_data), ftxt)
     print2('noise:' + str(ds.noise), ftxt)
     print2('virtual_measurements:' + str(ds.virtual_measurements), ftxt)
@@ -81,7 +85,7 @@ def get_zero_crossings(xs, pmean, tol = 1e-3):
             if torch.sign(pmean[j-1,i]) != torch.sign(pmean[j,i]):
                 x_zero_list.append((xs[j-1]+xs[j])/2)
             elif j == 1 and torch.abs(pmean[j-1,i]) < tol:
-                x_zero_list.append(x[j])
+                x_zero_list.append(xs[j])
             elif j == Nx-1 and torch.abs(pmean[j,i]) < tol:
                 x_zero_list.append(xs[j])                
         x_zero_lists.append(x_zero_list)           
