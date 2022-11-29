@@ -28,7 +28,8 @@ class HO_dataset(sc_dataset):
         #define inputs
         self.xmin = 0
         self.xmax = 10
-        self.xmin_off = -0.1
+        self.xmin_off = 0.2
+        self.xmax_off = 0.2
         
         #generate data
         self.train_and_test()
@@ -51,6 +52,10 @@ class HO_dataset(sc_dataset):
         self.drop_aux = 0
         self.ilist_drop_aux = [0,1]
         self.ilist_drop_aux_trans = [0,2]
+        
+        self.Laplace_opt_vec = [0,1,0,1] if self.drop_aux == 0 else [1,1]
+        #self.Laplace_opt_vec = [0,0,0,0] if self.drop_aux == 0 else [0,0]
+    
         
     def init_pars(self):       
         

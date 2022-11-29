@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Oct  8 12:00:30 2020
-
-@author: phipi206
-"""
 from .sc_dataset import sc_dataset
 from ..dropper import dropper
 import numpy as np
@@ -36,6 +30,7 @@ class free_fall_dataset(sc_dataset):
         self.xmin = 0
         self.xmax = 6
         self.xmin_off = 0.1
+        self.xmax_off = 0.1
         
         self.train_and_test()   
         
@@ -64,20 +59,22 @@ class free_fall_dataset(sc_dataset):
         self.ilist_vm = [1]
         self.ilist_vm_trans = [2]
         
-        self.drop_aux = 0        
+        self.drop_aux = 0
         self.ilist_drop_aux = [1]
         self.ilist_drop_aux_trans = [1]
         
+        self.Laplace_opt_vec = [0,0,1] if self.drop_aux == 0 else [0,1]
+            
+            
+            
     def init_pars(self):      
         self.C = torch.tensor(200.0)
         self.m = 1
         
         self.g = 9.81
-        self.v0 = torch.sqrt(torch.tensor(2*self.C/self.m))
+        self.v0 = torch.sqrt(torch.tensor(2/self.m)*self.C)
         self.F = torch.tensor([self.m*self.g,0,self.m*0.5]).unsqueeze(0)        
-        
-        
-        
+    
         
     def f(self, t): #calculate (true) outputs from inputs
         F = torch.zeros([t.shape[0], self.MT_dim ])

@@ -1,8 +1,15 @@
+#!/usr/bin/env python3
+
 import torch
 from torch.nn import ModuleList
+
+from typing import Optional
+
 from gpytorch.lazy import KroneckerProductLazyTensor, lazify
+from gpytorch.priors import Prior
 from gpytorch.kernels.index_kernel import IndexKernel
 from gpytorch.kernels.kernel import Kernel
+
 #from ..constraint.sum_x_conditional import *
 import time
 import numpy as np
@@ -25,16 +32,26 @@ class sc_MultitaskKernel(Kernel):
     :param dict kwargs: Additional arguments to pass to the kernel.
     """
 
-    def __init__(self, data_covar_module, mean_module, num_tasks, rank=1, task_covar_prior=None, C  = 0, F = 0, constrain = 1, **kwargs):
-        """
-        """
+    def __init__(
+        self,
+        data_covar_module: Kernel,
+        mean_module, 
+        num_tasks: int,
+        rank: Optional[int] = 1,
+        task_covar_prior: Optional[Prior] = None,
+        C  = 0,
+        F = 0,
+        constrain = 1,
+        **kwargs,
+    ):
+        """"""
         super(sc_MultitaskKernel, self).__init__(**kwargs)
-        
-        self.data_covar_module = data_covar_module
         self.task_covar_module = IndexKernel(
-        num_tasks=num_tasks, batch_shape=self.batch_shape, rank=rank, prior=task_covar_prior)
-        
+            num_tasks=num_tasks, batch_shape=self.batch_shape, rank=rank, prior=task_covar_prior
+        )
+        self.data_covar_module = data_covar_module
         self.num_tasks = num_tasks
+        
         self.C = C  
         self.varC = 0 if type(C) == torch.Tensor else 1 #non-constant constraint y/n
         self.mean_module = mean_module #mean module of GP
@@ -43,7 +60,7 @@ class sc_MultitaskKernel(Kernel):
         self.constrain = constrain #determine whether to constrain or not
         self.finv = 100 ##heuristic factor to improve conditioning in inverse when constraining the GP
 
-    #get covariance matrix for x1,x2
+
     def forward(self, x1, x2, diag=False, last_dim_is_batch=False, **params):
         if last_dim_is_batch:
             raise RuntimeError("MultitaskKernel does not accept the last_dim_is_batch argument.")
@@ -62,6 +79,7 @@ class sc_MultitaskKernel(Kernel):
             mean_x = self.mean_module(x1)[0,:]
         else:
             mean_x = self.mean_module(x1)
+            
         if not torch.is_tensor(covar_x):
             covar_x = covar_x.evaluate()
         
@@ -73,7 +91,7 @@ class sc_MultitaskKernel(Kernel):
                 res, mu2 = ConstructRes(covar_x,covar_i,mean_x,self.num_tasks,self.C,self.F,self.finv)
             elif self.varC == 1:
                 res, mu2 = ConstructResVarC(covar_x,covar_i,mean_x,self.num_tasks,self.C,self.F,x1, self.finv)       
-            res += eps*torch.eye(res.shape[0])     #add small number to diagonal since matrix singular           
+            res = res + eps*torch.eye(res.shape[0])     #add small number to diagonal since matrix singular           
         else: #unconstrained
             res = KroneckerProductLazyTensor(lazify(covar_x), covar_i)
             mu2 = mean_x
@@ -83,21 +101,23 @@ class sc_MultitaskKernel(Kernel):
         if self.varC == 0:
             self.mu2 = self.mu2.repeat(x1.size(),1)
             
-        return res.diag() if diag else res
+        return res.diag() if diag else res#.detach()
 
-    
     def num_outputs_per_input(self, x1, x2):
         """
         Given `n` data points `x1` and `m` datapoints `x2`, this multitask
         kernel returns an `(n*num_tasks) x (m*num_tasks)` covariance matrix.
         """
         return self.num_tasks
+
+
     
     
     
 #construct full covariance matrix for constant C
 def ConstructRes(covar_x, covar_i, mean_x, num_tasks, C, F,finv):
     mu2, Sigma2 = get_mu2_Sigma2(mean_x,covar_i,C,F,finv)
+    #res = KroneckerProductLazyTensor(lazify(covar_x),lazify(Sigma2))
     res = torch.kron(covar_x,Sigma2)
 
     return lazify(res), mu2
@@ -133,21 +153,24 @@ def get_mu2_Sigma2(mu, Sigma, S, F=0, finv=100):
     if type(F) == list:
         F = torch.tensor(F).unsqueeze(0).float()
 
-    SU = Sigma.matmul(F.T)
-    Cq = F.matmul(SU)
+    if not torch.is_tensor(Sigma):
+        Sigma = Sigma.evaluate()
+    SU = Sigma@F.T
+    Cq = F@SU
     
-    # add small value to diagonal if smallest eigenvalue very small/negative
-    leig = torch.eig(Cq,eigenvectors = True)[0][:,0].detach()
-    lmin = torch.min(leig)
-    lmax = torch.max(leig)
+    # add small value to diagonal if smallest eigenvalue very small/negative    
+    leig = torch.linalg.eigvals(Cq).detach()
+    lmin = torch.min(torch.real(leig))
+    lmax = torch.max(torch.real(leig))
+    
     if lmin < 1e-6:
         Cq += finv*torch.abs(lmin)*torch.eye(Cq.shape[0])
     
     #calculate constrained mu2, Sigma2
-    C = torch.inverse(Cq).matmul(SU.T)
-    A = torch.eye(d) - (C.T).matmul(F)
-    mu2 = A.matmul(mu) + (C.T).matmul(S)        
-    Sigma2 = A.matmul(Sigma.matmul(A.T))  
+    C = torch.inverse(Cq)@SU.T
+    A = torch.eye(d) - C.T@F
+    mu2 = A@mu + C.T@S     
+    Sigma2 = A@Sigma@A.T
     
     return mu2, Sigma2
 

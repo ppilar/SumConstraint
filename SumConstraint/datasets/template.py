@@ -48,6 +48,8 @@ class example_dataset():
 		self.ilist_drop_aux = ...   #list of indices of dims in y corresponding to dims in y' that should be dropped
 		self.ilist_drop_aux_trans = ...		#list of indices of dims in y' that should be omitted during learning
 		
+        self.Laplace_opt_vec = [0,1,0,1] if self.drop_aux == 0 else [1,1]   #define what transformation applied to inputs for Laplace approximation
+        
 	#functions defining dataset and constraint
 	def init_pars(self):
 		#initilize parameters required for calculating outputs from inputs

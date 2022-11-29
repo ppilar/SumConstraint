@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Oct  8 12:00:30 2020
-
-@author: phipi206
-"""
 from .sc_dataset import sc_dataset
 from ..dropper import dropper
 import numpy as np
@@ -44,6 +38,8 @@ class mesh_dataset(sc_dataset):
         
         self.virtual_measurements = 0        
         self.drop_aux = 0
+		
+        self.Laplace_opt_vec = -1
         
     def init_pars(self):      
         self.C = 16*torch.tensor([1.,1.46,0.26,2])#.repeat(len(x),1).T 
@@ -90,19 +86,20 @@ class mesh_dataset(sc_dataset):
         drop_ind_trans[:,9] = np.logical_or(drop_ind[:,6],drop_ind[:,7])
         return torch.tensor(drop_ind_trans).float()
     
-    def get_optimizer_pars(self, jkernel):
+    def get_optimizer_pars(self, jkernel, opt_approx):
         lr = 0.1
         s1 = 800
         s2 = 0.2
         
         N_iter = 2000
-        
-        return lr, s1, s2, N_iter
+        N_iter_max = 2000
+        return lr, s1, s2, N_iter, N_iter_max
     
       
 #helper functions to generate triangle trajectory     
 def cf(x):
-    return 0.5*torch.cos(torch.tensor(2*x))
+    #return 0.5*torch.cos(torch.tensor(2*x))
+    return 0.5*torch.cos(2*x)
         
 def beta(x):
     return 0.5*x

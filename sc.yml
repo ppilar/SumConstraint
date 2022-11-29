@@ -4,44 +4,65 @@ channels:
   - pytorch
   - defaults
 dependencies:
+  - backcall=0.2.0=pyh9f0ad1d_0
+  - backports=1.0=py_2
+  - backports.functools_lru_cache=1.6.4=pyhd8ed1ab_0
   - blas=1.0=mkl
   - brotli=1.0.9=h8ffe710_6
   - brotli-bin=1.0.9=h8ffe710_6
-  - ca-certificates=2021.10.8=h5b45459_0
-  - certifi=2021.10.8=py38haa244fe_1
+  - ca-certificates=2022.6.15=h5b45459_0
+  - certifi=2022.6.15=py38haa244fe_0
+  - cloudpickle=2.1.0=pyhd8ed1ab_0
+  - colorama=0.4.5=pyhd8ed1ab_0
   - cudatoolkit=10.2.89=hb195166_9
   - cycler=0.11.0=pyhd8ed1ab_0
+  - debugpy=1.6.0=py38h885f38d_0
+  - decorator=5.1.1=pyhd8ed1ab_0
   - dill=0.3.4=pyhd8ed1ab_0
+  - entrypoints=0.4=pyhd8ed1ab_0
   - fonttools=4.28.5=py38h294d835_0
   - freetype=2.10.4=hd328e21_0
   - gpytorch=1.1.1=py_0
   - icu=68.2=h0e60522_0
   - intel-openmp=2021.4.0=haa95532_3556
+  - ipykernel=6.15.1=pyh025b116_0
+  - ipython=7.33.0=py38haa244fe_0
+  - jedi=0.18.1=py38haa244fe_1
   - jpeg=9d=h2bbff1b_0
+  - jupyter_client=7.3.4=pyhd8ed1ab_0
+  - jupyter_core=4.10.0=py38haa244fe_0
   - kiwisolver=1.3.2=py38hbd9d945_1
   - libbrotlicommon=1.0.9=h8ffe710_6
   - libbrotlidec=1.0.9=h8ffe710_6
   - libbrotlienc=1.0.9=h8ffe710_6
   - libclang=11.1.0=default_h5c34c98_1
   - libpng=1.6.37=h2a8f88b_0
+  - libsodium=1.0.18=h8d14728_1
   - libtiff=4.2.0=hd0e1b90_0
   - libuv=1.40.0=he774522_0
   - libwebp=1.2.0=h2bbff1b_0
   - lz4-c=1.9.3=h2bbff1b_1
   - matplotlib=3.5.1=py38haa244fe_0
   - matplotlib-base=3.5.1=py38h1f000d6_0
+  - matplotlib-inline=0.1.3=pyhd8ed1ab_0
   - mkl=2021.4.0=haa95532_640
   - mkl-service=2.4.0=py38h2bbff1b_0
   - mkl_fft=1.3.1=py38h277e83a_0
   - mkl_random=1.2.2=py38hf11a4ad_0
   - munkres=1.1.4=pyh9f0ad1d_0
+  - nest-asyncio=1.5.5=pyhd8ed1ab_0
   - numpy=1.21.2=py38hfca59bb_0
   - numpy-base=1.21.2=py38h0829f74_0
   - olefile=0.46=pyhd3eb1b0_0
-  - openssl=1.1.1l=h8ffe710_0
+  - openssl=1.1.1q=h8ffe710_0
   - packaging=21.3=pyhd8ed1ab_0
+  - parso=0.8.3=pyhd8ed1ab_0
+  - pickleshare=0.7.5=py_1003
   - pillow=8.4.0=py38hd45dc43_0
   - pip=21.2.2=py38haa95532_0
+  - prompt-toolkit=3.0.30=pyha770c72_0
+  - psutil=5.9.1=py38h294d835_0
+  - pygments=2.12.0=pyhd8ed1ab_0
   - pyparsing=3.0.6=pyhd8ed1ab_0
   - pyqt=5.12.3=py38haa244fe_8
   - pyqt-impl=5.12.3=py38h885f38d_8
@@ -53,21 +74,27 @@ dependencies:
   - python_abi=3.8=2_cp38
   - pytorch=1.10.1=py3.8_cuda10.2_cudnn7_0
   - pytorch-mutex=1.0=cuda
+  - pywin32=303=py38h294d835_0
+  - pyzmq=23.2.0=py38h09162b1_0
   - qt=5.12.9=h5909a2a_4
   - setuptools=58.0.4=py38haa95532_0
   - six=1.16.0=pyhd3eb1b0_0
+  - spyder-kernels=2.3.2=py38haa244fe_0
   - sqlite=3.36.0=h2bbff1b_0
   - tk=8.6.11=h2bbff1b_0
   - torchaudio=0.10.1=py38_cu102
   - torchvision=0.11.2=py38_cu102
   - tornado=6.1=py38h294d835_2
+  - traitlets=5.3.0=pyhd8ed1ab_0
   - typing_extensions=3.10.0.2=pyh06a4308_0
   - unicodedata2=13.0.0.post2=py38h294d835_4
   - vc=14.2=h21ff451_1
   - vs2015_runtime=14.27.29016=h5e58377_2
+  - wcwidth=0.2.5=pyh9f0ad1d_2
   - wheel=0.37.0=pyhd3eb1b0_1
   - wincertstore=0.2=py38haa95532_2
   - xz=5.2.5=h62dcd97_0
+  - zeromq=4.3.4=h0e60522_1
   - zlib=1.2.11=h8cc25b3_4
   - zstd=1.4.9=h19a0ad4_0
 prefix: C:\Users\Admin\anaconda3\envs\SC

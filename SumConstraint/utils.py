@@ -11,10 +11,8 @@ from .datasets.free_fall_dataset import free_fall_dataset
 from .datasets.dp_dataset import dp_dataset
 from .datasets.mesh_dataset import mesh_dataset
 from .datasets.logsin_dataset import logsin_dataset
-
-#from .sc_gpytorch.sc_exact_marginal_log_likelihood import ExactMarginalLogLikelihood
-#from .sc_gpytorch.sc_multitask_gaussian_likelihood import MultitaskGaussianLikelihoodZN
-
+from .sc_gpytorch.utils import get_nan_entries, omit_nan_mu_covar_v0
+from .sc_gpytorch.utils_var import init_var_pars
 
 
 #load dataset
@@ -51,7 +49,7 @@ def print2(tstr,ftxt):
     ftxt.write(tstr+'\n')           
                 
 #list parameters of dataset and learning process
-def collect_parameters(ftxt, ds, MT_GP_kernels, Ndata, N_datasets, N_iter, constrain_start, early_stopping, same_data):
+def collect_parameters(ftxt, ds, MT_GP_kernels, Ndata, N_datasets, N_iter, constrain_start, use_Laplace, early_stopping, same_data):
     print2('dlabel:' + str(ds.dlabel), ftxt)
     print2('xmax:' + str(ds.xmax), ftxt)
     print2(' ', ftxt)
@@ -62,6 +60,7 @@ def collect_parameters(ftxt, ds, MT_GP_kernels, Ndata, N_datasets, N_iter, const
     print2('f_dropout:' + str(ds.f_dropout), ftxt)    
     print2('N_iterations:' + str(N_iter), ftxt)
     print2('constrain_start:' + str(constrain_start), ftxt)
+    print2('use_Laplace:' + str(use_Laplace), ftxt)
     print2('early_stopping:' + str(early_stopping), ftxt)
     print2('same_data:' + str(same_data), ftxt)
     print2('noise:' + str(ds.noise), ftxt)
@@ -117,12 +116,44 @@ def prepare_aux(ilist, ptrans, ltrans, utrans):
     
     return pt, lt, ut
     
+#set predictions of approximate method in model
+def set_approx(model, opt_approx, fhat, sig, W, y):
+    if opt_approx == 'L':
+        model.fhat = fhat.detach()
+        model.sig = sig.detach()
+        model.W = W.detach()
+    if opt_approx == 'var':
+        model.fhat = model.muq.detach()
+        Lbuf = torch.tril(model.Lbuf).detach()
+        model.sig = Lbuf@Lbuf.T
+        
+        buf, ibuf, N = get_nan_entries(y.reshape(-1))
+        model.fhat, model.sig = omit_nan_mu_covar_v0(model.fhat, model.sig, N, buf, ibuf)
+        model.W = torch.tensor(-1)
     
+#check which approximation is used
+def get_opt_approx(transform_yn, use_approximation):    
+    if (transform_yn == True and use_approximation == 1): #check if Laplace approximation should be employed
+        opt_approx = 'L' 
+    elif (transform_yn == True and use_approximation == 2): #check if variational inference should be employed
+        opt_approx = 'var' 
+    else:
+        opt_approx = ''   
+    return opt_approx
     
+#initialize parameters for approximate method
+def init_approx_pars(opt_approx, model, x, y, MT_dim):
+    if opt_approx == 'var':
+        init_var_pars(model, x, y, MT_dim)
+        var_pars = [model.muq, model.Lbuf]
+    else:
+        var_pars = -1
+        
+    fhat = -1
+    if opt_approx == 'L':
+        lfhat = len(torch.where(~torch.isnan(y.reshape(-1)))[0])
+        f = torch.kron(torch.nanmean(y,0).unsqueeze(1), torch.ones(y.shape[0])).T.reshape(-1)
+        fhat = f[torch.where(~torch.isnan(y.reshape(-1)))]
+        fhat = 0.1*torch.ones(lfhat)#initialization for Laplace approximation
     
-    
-    
-    
-    
-    
-    
+    return fhat, var_pars

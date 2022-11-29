@@ -9,4 +9,4 @@ To experiment with different datasets and settings, use SC_main.py
 If you would like to run experiments for the double pendulum dataset, please download the dataset from the following link:
 https://developer.ibm.com/exchanges/data/all/double-pendulum-chaotic/
 
-Afterwards, adapt the path in line 172 of the file SumConstraint\datasets\dp_dataset.py.
+Afterwards, adapt the path in line 238 of the file SumConstraint\datasets\dp_dataset.py.

@@ -29,6 +29,10 @@ class sc_dataset():
         self.xmax_off = 0
         
         self.lsmin = 0.001
+        
+        self.rescale_trans_vec = [] #placeholder
+        self.rescale_jvec = []
+        self.rescale_jtrans_vec = []
 
     #add random noise to data
     def add_noise(self, noise):
@@ -76,7 +80,7 @@ class sc_dataset():
             return self.train_x_trans, self.train_y_trans, self.test_x, self.MT_dim_trans, copy.copy(self.dropper_trans), self.F, self.get_C(), transform_yn
 
     #initialize arrays to store results
-    def init_predictions(self, N_iter): #N_iter attribute of ds?
+    def init_predictions(self, N_iter_max): #N_iter attribute of ds?
         d0 = self.test_y.shape[0]
         d1 = self.test_y.shape[1]
         self.pmean_ges = torch.zeros([self.N_kernel,d0,d1])
@@ -91,14 +95,14 @@ class sc_dataset():
         
         self.imll = torch.zeros(self.N_kernel).int()
         self.Ntry = torch.zeros(self.N_kernel).int()
-        self.mll_ges = torch.zeros([self.N_kernel, N_iter])
-        self.mll2_ges = torch.zeros([self.N_kernel, N_iter])
-        self.mll3_ges = torch.zeros([self.N_kernel, N_iter])
+        self.mll_ges = torch.zeros([self.N_kernel, N_iter_max])
+        self.mll2_ges = torch.zeros([self.N_kernel, N_iter_max])
+        self.mll3_ges = torch.zeros([self.N_kernel, N_iter_max])
         
     #store predictions after training
-    def set_prediction(self, jkernel, transform_yn, pmean, pmean_trans, lower, lower_trans, upper, upper_trans, mll_ges, mll2_ges, mll3_ges, N_iter, Ntry):
+    def set_prediction(self, jkernel, transform_yn, pmean, pmean_trans, lower, lower_trans, upper, upper_trans, mll_ges, mll2_ges, mll3_ges, N_iter_max, Ntry):
         if jkernel == 0:
-            self.init_predictions(N_iter)
+            self.init_predictions(N_iter_max)
         
         self.pmean_ges[jkernel,:,0:pmean.shape[1]] = pmean
         self.lower_ges[jkernel,:,0:pmean.shape[1]] = lower
@@ -148,8 +152,6 @@ class sc_dataset():
         else:
             return self.fC
     
-    ##### more polish needed below
-    
     #insert virtual measurements into data
     def insert_virtual_measurements(self):
         N_virtual = 0
@@ -172,23 +174,47 @@ class sc_dataset():
                 self.train_y_trans = torch.cat((self.train_y_trans,y_new))
                 
     #standard optimizer parameters
-    def get_optimizer_pars(self, jkernel):
-        lr = 0.3
-        s1 = 200
-        s2 = 0.5
-        N_iter = 300
+    def get_optimizer_pars(self, jkernel, opt_approx = 0):
+        N_iter_max = 2000
+        if jkernel == 1 and opt_approx == 2: #constrained GP, variational
+            lr = 2e-3
+            N_iter = 2000
+            s1 = 8000
+            s2 = 0.5
+        else:
+            lr = 0.1 #0.3
+            s1 = 100
+            s2 = 0.5
+            N_iter = 200 #300
+            
+        return lr, s1, s2, N_iter, N_iter_max
+    
+    #parameters for Newton's method in Laplace optimization
+    def get_L_Newton_pars(self):
+        L_Newton_pars = [100, 0.05, 1, 2] #iterations per step, starting learning rate, number of decays, decay rate
+        return L_Newton_pars
         
-        return lr, s1, s2, N_iter
         
     #get optimizer and scheduler
-    def get_optimizer(self, jkernel, model):
-        lr, s1, s2, N_iter = self.get_optimizer_pars(jkernel)
+    def get_optimizer(self, jkernel, model, opt_approx):
+        lr, s1, s2, N_iter, N_iter_max = self.get_optimizer_pars(jkernel, opt_approx)
+        L_Newton_pars = self.get_L_Newton_pars()
         
-        optimizer = torch.optim.Adam([
-            {'params': model.parameters()},  # Includes GaussianLikelihood parameters
-        ],lr = lr)                
+        
+        
+        if jkernel != 8:
+            optimizer = torch.optim.Adam([
+                {'params': model.parameters()},  # Includes GaussianLikelihood parameters
+            ],lr = lr)  
+        else:
+            optimizer = torch.optim.Adam([
+                {'params': model.likelihood.parameters()},
+                {'params': model.covar_module.task_covar_module.parameters()},
+                {'params': model.covar_module.data_covar_module.parameters()},
+                ],lr = lr)  
+            
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer,s1,s2)
-        return optimizer, scheduler, N_iter
+        return optimizer, scheduler, N_iter, N_iter_max, L_Newton_pars
     
     
     #get first and last index for error calculation
@@ -223,6 +249,19 @@ class sc_dataset():
             
         return deltaC
     
+    #calculate fraction of points within credible intervals
+    def calculate_uncertainty(self, num_std = 2):        
+        i1, i2 = self.get_i1i2()
+        
+        unc = torch.zeros(self.N_kernel)
+        ilist = torch.argmin(torch.abs(self.train_x.unsqueeze(0) - self.test_x.unsqueeze(1)),0)
+        for i in range(self.N_kernel):
+            std = (self.pmean_ges[i][ilist,:] - self.lower_ges[i][ilist,:])/2
+            Ydiff = torch.abs(self.train_y - self.pmean_ges[i][ilist,:])
+            unc[i] = torch.sum(Ydiff > (std*num_std))
+            
+        return unc/self.train_y.numel()
+    
     #get correct C for calculation of delta C for various cases
     def get_Cbuf(self,i1,i2,buf):
         if self.constant_C == 1:
@@ -237,11 +276,5 @@ class sc_dataset():
             
         return Cbuf
         
-    
-    
-    
-    
-    
-    
     
     

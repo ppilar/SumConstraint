@@ -15,10 +15,11 @@ class sc_results():
         
     #calculate statistics of results over multiple datasets
     def get_statistics(self):
-        self.erms_ges, self.deltaC_ges, self.mll_ges, self.mll2_ges, self.mll3_ges = np.zeros([5, self.N_ds, self.N_kernel])
+        self.erms_ges, self.deltaC_ges, self.mll_ges, self.mll2_ges, self.mll3_ges, self.unc_ges = np.zeros([6, self.N_ds, self.N_kernel])
         for i in range(self.N_ds):
             self.erms_ges[i,:] = self.ds_list[i].calculate_erms()
             self.deltaC_ges[i,:] = self.ds_list[i].calculate_deltaC()
+            self.unc_ges[i,:] = self.ds_list[i].calculate_uncertainty()
             for j in range(self.N_kernel):
                 self.mll_ges[i,j] = self.ds_list[i].mll_ges[j,self.ds_list[i].imll[j]]
                 self.mll2_ges[i,j] = self.ds_list[i].mll2_ges[j,self.ds_list[i].imll[j]]
@@ -29,6 +30,9 @@ class sc_results():
         
         self.deltaC_avg = np.nanmean(self.deltaC_ges,0)
         self.deltaC_std = np.nanstd(self.deltaC_ges,0)
+        
+        self.unc_avg = np.nanmean(self.unc_ges,0)
+        self.unc_std = np.nanstd(self.unc_ges,0)
         
         self.mll_avg = np.mean(self.mll_ges,0)
         self.mll_std = np.std(self.mll_ges,0)
@@ -49,17 +53,23 @@ class sc_results():
         print2('sigma-mll:', ftxt)
         print2(str(np.round(self.mll_std,ndec)),ftxt)
         
-        print2('\nmll2:', ftxt)
-        print2(str(np.round(self.mll2_avg,ndec)),ftxt)
+        # print2('\nmll2:', ftxt)
+        # print2(str(np.round(self.mll2_avg,ndec)),ftxt)
         
-        print2('sigma-mll2:', ftxt)
-        print2(str(np.round(self.mll2_std,ndec)),ftxt)
+        # print2('sigma-mll2:', ftxt)
+        # print2(str(np.round(self.mll2_std,ndec)),ftxt)
         
-        print2('\nmll3:', ftxt)
-        print2(str(np.round(self.mll3_avg,ndec)),ftxt)
+        # print2('\nmll3:', ftxt)
+        # print2(str(np.round(self.mll3_avg,ndec)),ftxt)
         
-        print2('sigma-mll3:', ftxt)
-        print2(str(np.round(self.mll3_std,ndec)),ftxt)
+        # print2('sigma-mll3:', ftxt)
+        # print2(str(np.round(self.mll3_std,ndec)),ftxt)
+        
+        print2('\noutside:', ftxt)
+        print2(str(np.round(self.unc_avg,ndec)),ftxt)
+        
+        print2('sigma-out:', ftxt)
+        print2(str(np.round(self.unc_std,ndec)),ftxt)
         
         print2('\nerms:', ftxt)
         print2(str(np.round(self.erms_avg,ndec)),ftxt)

@@ -128,7 +128,7 @@ def conf_plot(ds, conf_yn = 1):
         ctvec = ['g','b']
         mvec = ['o','x']
         #lvec = ['$f_1$','$f_2$']
-        l0vec = [r'$f_{1_0}$',r'$f_{\rm aux}^1$']
+        l0vec = [r'$f_1^0$',r'$f_2^0$']
         ltvec = ['log($f_1$)','sin($f_2$)', '$2C$']
         lbvec = ['$f_1}$','$f_2$']
         xlabel = 'x'
@@ -152,7 +152,10 @@ def conf_plot(ds, conf_yn = 1):
     #axs[0,0].legend(['$z_0$','$v_0$'])
     axs[0,0].legend(l0vec)
     axs[0,0].set(xlabel=xlabel)
-    #axs[0,0].set(ylim=[-1.7,2.0])
+    #axs[0,0].set(ylim=[-1.8,2.0])
+    #axs[0,0].set(ylim=[-1.3,1.7])
+    #axs[0,0].set(ylim=[-3.5,1.3])
+    #axs[0,0].set(ylim=[-4.2,2.5])
     
     
     #plot of transformed outputs (constrained GP)
@@ -173,6 +176,7 @@ def conf_plot(ds, conf_yn = 1):
     axs[0,1].legend(ltvec)
     axs[0,1].set(xlabel=xlabel)
     #axs[0,1].set(ylim=[-0.25,2.25])
+    #axs[0,1].set(ylim=[-0.25,1.9])
 
 
     #plot of backtransformed outputs (constrained GP)    
@@ -186,7 +190,10 @@ def conf_plot(ds, conf_yn = 1):
     #axs[1,1].legend(['$z$','$v$'])
     axs[1,1].legend(lbvec)
     axs[1,1].set(xlabel=xlabel)
-    #axs[1,1].set(ylim=[-1.7,2.0])
+    #axs[1,1].set(ylim=[-1.8,2.0])
+    #axs[0,0].set(ylim=[-1.3,1.7])
+    #axs[0,0].set(ylim=[-3.5,1.3])
+    #axs[0,0].set(ylim=[-4.2,2.5])
 
     
     #plot of original outputs - both constraind and unconstrained GP

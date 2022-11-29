@@ -25,7 +25,7 @@ from .sc_exact_prediction_strategies import sc_prediction_strategy
 # from .gp import GP
 
 #has been modified to call sc_prediction_strategy
-class ExactGP(GP):
+class sc_ExactGP(GP):
     r"""
     The base class for any Gaussian process latent function to be used in conjunction
     with exact inference.
@@ -63,7 +63,7 @@ class ExactGP(GP):
         >>> likelihood(model(test_x))  # Returns the (approximate) predictive posterior distribution at test_x
     """
 
-    def __init__(self, train_inputs, train_targets, likelihood):
+    def __init__(self, train_inputs, train_targets, likelihood, mode):
         if train_inputs is not None and torch.is_tensor(train_inputs):
             train_inputs = (train_inputs,)
         if train_inputs is not None and not all(torch.is_tensor(train_input) for train_input in train_inputs):
@@ -71,7 +71,7 @@ class ExactGP(GP):
         if not isinstance(likelihood, _GaussianLikelihoodBase):
             raise RuntimeError("ExactGP can only handle Gaussian likelihoods")
 
-        super(ExactGP, self).__init__()
+        super(sc_ExactGP, self).__init__()
         if train_inputs is not None:
             self.train_inputs = tuple(tri.unsqueeze(-1) if tri.ndimension() == 1 else tri for tri in train_inputs)
             self.train_targets = train_targets
@@ -81,6 +81,12 @@ class ExactGP(GP):
         self.likelihood = likelihood
 
         self.prediction_strategy = None
+        
+        #SC: Laplace approximation
+        self.mode = mode
+        self.fhat = -1
+        self.sig = -1
+        self.W = -1
 
     @property
     def train_targets(self):
@@ -94,7 +100,11 @@ class ExactGP(GP):
         if self.train_inputs is not None:
             self.train_inputs = tuple(fn(train_input) for train_input in self.train_inputs)
             self.train_targets = fn(self.train_targets)
-        return super(ExactGP, self)._apply(fn)
+        return super(sc_ExactGP, self)._apply(fn)
+
+    def _clear_cache(self):
+        # The precomputed caches from test time live in prediction_strategy
+        self.prediction_strategy = None
 
     def local_load_samples(self, samples_dict, memo, prefix):
         """
@@ -216,7 +226,7 @@ class ExactGP(GP):
         except KeyError:
             fantasy_kwargs = {}
 
-        full_output = super(ExactGP, self).__call__(*full_inputs, **kwargs)
+        full_output = super(sc_ExactGP, self).__call__(*full_inputs, **kwargs)
 
         # Copy model without copying training data or prediction strategy (since we'll overwrite those)
         old_pred_strat = self.prediction_strategy
@@ -247,19 +257,6 @@ class ExactGP(GP):
 
         return new_model
 
-    def train(self, mode=True):
-        if mode:
-            self.prediction_strategy = None
-        return super(ExactGP, self).train(mode)
-
-    def _load_from_state_dict(
-        self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
-    ):
-        self.prediction_strategy = None
-        super()._load_from_state_dict(
-            state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
-        )
-
     def __call__(self, *args, **kwargs):
         train_inputs = list(self.train_inputs) if self.train_inputs is not None else []
         inputs = [i.unsqueeze(-1) if i.ndimension() == 1 else i for i in args]
@@ -280,7 +277,7 @@ class ExactGP(GP):
         # Prior mode
         elif settings.prior_mode.on() or self.train_inputs is None or self.train_targets is None:
             full_inputs = args
-            full_output = super(ExactGP, self).__call__(*full_inputs, **kwargs)
+            full_output = super(sc_ExactGP, self).__call__(*full_inputs, **kwargs)
             if settings.debug().on():
                 if not isinstance(full_output, MultivariateNormal):
                     raise RuntimeError("ExactGP.forward must return a MultivariateNormal")
@@ -295,20 +292,23 @@ class ExactGP(GP):
                         GPInputWarning,
                     )
 
-
             # Get the terms that only depend on training data
             if self.prediction_strategy is None:
                 train_output = super().__call__(*train_inputs, **kwargs)
                 
+                #SC: change to sc_prediction strategy
                 # Create the prediction strategy for
                 self.prediction_strategy = sc_prediction_strategy(
                     train_inputs=train_inputs,
                     train_prior_dist=train_output,
                     train_labels=self.train_targets,
                     likelihood=self.likelihood,
+                    mode = self.mode,
+                    fhat = self.fhat,
+                    sig = self.sig,
+                    W = self.W
                 )
-            
-            
+
             # Concatenate the input to the training input
             full_inputs = []
             batch_shape = train_inputs[0].shape[:-2]
@@ -324,7 +324,7 @@ class ExactGP(GP):
                 full_inputs.append(torch.cat([train_input, input], dim=-2))
 
             # Get the joint distribution for training/test data
-            full_output = super(ExactGP, self).__call__(*full_inputs, **kwargs)
+            full_output = super(sc_ExactGP, self).__call__(*full_inputs, **kwargs)
             if settings.debug().on():
                 if not isinstance(full_output, MultivariateNormal):
                     raise RuntimeError("ExactGP.forward must return a MultivariateNormal")
@@ -343,3 +343,4 @@ class ExactGP(GP):
             # Reshape predictive mean to match the appropriate event shape
             predictive_mean = predictive_mean.view(*batch_shape, *test_shape).contiguous()
             return full_output.__class__(predictive_mean, predictive_covar)
+

@@ -5,11 +5,9 @@ import SumConstraint as sc
 import matplotlib.pyplot as plt
 
 #%%
-
-
 #fixed seeds for testing
 #s = np.random.randint(10000)
-s = 0
+s = 42
 torch.manual_seed(s)
 np.random.seed(s)
 
@@ -21,18 +19,20 @@ sopt = 1 #special option
 N_iter = -1
 noise = -1
 f_dropout = -1
+use_approximation = 1
 
-dlabel = 'HO' # f_dropout = 0.2 # noise = 0.1
-sc.train_GP.get_results(MT_GP_kernels, dlabel, noise, f_dropout, early_stopping=es, sopt=sopt, same_data=same_data)
+dlabel = 'HO'
+sc.train_GP.get_results(MT_GP_kernels, dlabel, noise, f_dropout, use_approximation = use_approximation, early_stopping=es, sopt=sopt, same_data=same_data)
 
-dlabel = 'dHO' # f_dropout = 0.2 # noise = 0.2
-sc.train_GP.get_results(MT_GP_kernels, dlabel, noise, f_dropout, early_stopping=es, sopt=sopt, same_data=same_data)
+dlabel = 'dHO'
+sc.train_GP.get_results(MT_GP_kernels, dlabel, noise, f_dropout, use_approximation = use_approximation, early_stopping=es, sopt=sopt, same_data=same_data)
 
-dlabel = 'ff' # f_dropout = 0.2 # noise = 2
-sc.train_GP.get_results(MT_GP_kernels, dlabel, noise, f_dropout, early_stopping=es, sopt=sopt, same_data=same_data)
-
-dlabel = 'dp' # f_dropout = 0 # noise = 0
-sc.train_GP.get_results(MT_GP_kernels, dlabel, noise, f_dropout, early_stopping=es, sopt=sopt, same_data=same_data)
+dlabel = 'ff' # f_dropout = 0.2 # noise = 0.1
+sc.train_GP.get_results(MT_GP_kernels, dlabel, noise, f_dropout, use_approximation = use_approximation, early_stopping=es, sopt=sopt, same_data=same_data)
 
 dlabel = 'logsin' # f_dropout = 0.2 # noise = 0.1
-sc.train_GP.get_results(MT_GP_kernels, dlabel, noise, f_dropout, early_stopping=es, sopt=sopt, same_data=same_data)
+sc.train_GP.get_results(MT_GP_kernels, dlabel, noise, f_dropout, use_approximation = use_approximation, early_stopping=es, sopt=sopt, same_data=same_data)
+
+# dlabel = 'dp' # f_dropout = 0 # noise = 0
+# sc.train_GP.get_results(MT_GP_kernels, dlabel, noise, f_dropout, use_approximation = use_approximation, early_stopping=es, sopt=sopt, same_data=same_data)
+

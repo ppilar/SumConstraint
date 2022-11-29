@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Oct  8 12:00:30 2020
-
-@author: phipi206
-"""
 from .sc_dataset import sc_dataset
 from ..dropper import dropper
 import numpy as np
@@ -61,13 +55,16 @@ class logsin_dataset(sc_dataset):
         self.drop_aux = 1
         self.ilist_drop_aux = self.ilist_aux
         self.ilist_drop_aux_trans = self.ilist_aux_trans
+        
+        self.Laplace_opt_vec = [2,0,3] if self.drop_aux == 0 else [2,3]
+        
        
     def init_fpars(self):        
         self.a = 5
         self.b = 1        
         
-        self.F = torch.tensor([1.,0.,1.]).unsqueeze(0)
-        
+        self.F = torch.tensor([1.,0.,1.]).unsqueeze(0)    
+    
     def fC(self, t):
         Fbuf = self.f(t)
         Cbuf = torch.log(Fbuf[:,0]) + torch.sin(Fbuf[:,1]) #adapt to avoid nan!
@@ -102,12 +99,5 @@ class logsin_dataset(sc_dataset):
         drop_ind_trans[:,1] = drop_ind[:,1]
         drop_ind_trans[:,2] = drop_ind[:,1]
         return drop_ind_trans
-        
-    def get_optimizer_pars(self, jkernel):
-        lr = 0.1
-        s1 = 100
-        s2 = 0.5
-        N_iter= 300
-        return lr, s1, s2, N_iter
-        
+    
             
